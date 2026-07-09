@@ -239,6 +239,9 @@ statusEl.textContent = 'Loading globe...';
     duration: 0
   });
 
+  // Track plane taake scroll zoom plane pe focus rahe
+  viewer.trackedEntity = permPlane;
+
   // Let map load before showing Ready
   setTimeout(() => {
     statusEl.textContent = 'Ready! Select cities and click Fly Now';

@@ -147,7 +147,7 @@ statusEl.textContent = 'Loading globe...';
     const velOrientation = new Cesium.VelocityOrientationProperty(pp);
     const flipModel = Cesium.Quaternion.fromAxisAngle(Cesium.Cartesian3.UNIT_Z, Cesium.Math.toRadians(180));
 
-    // Camera follow - plane ke left side se
+    // Camera follow - plane pe focus, scroll zoom allowed
     let followActive = true;
     const planeEntity = viewer.entities.add({
       position: pp,
@@ -158,18 +158,19 @@ statusEl.textContent = 'Loading globe...';
         return Cesium.Quaternion.multiply(q, flipModel, new Cesium.Quaternion());
       }, false)
     });
-    viewer.scene.postUpdate.addEventListener(function cameraFollow() {
-      if (!followActive) { viewer.scene.postUpdate.removeEventListener(cameraFollow); return; }
-      const t = viewer.clock.currentTime;
-      const pos = pp.getValue(t);
-      const nextT = Cesium.JulianDate.addSeconds(t, 0.1, new Cesium.JulianDate());
-      const nextPos = pp.getValue(nextT);
-      if (pos && nextPos) {
+    viewer.trackedEntity = planeEntity;
+    // Set initial camera offset: 800m left, 4000m above
+    const t0 = viewer.clock.currentTime;
+    const p0 = pp.getValue(t0);
+    if (p0) {
+      const t1 = Cesium.JulianDate.addSeconds(t0, 0.1, new Cesium.JulianDate());
+      const p1 = pp.getValue(t1);
+      if (p1) {
         const dir = Cesium.Cartesian3.normalize(
-          Cesium.Cartesian3.subtract(nextPos, pos, new Cesium.Cartesian3()),
+          Cesium.Cartesian3.subtract(p1, p0, new Cesium.Cartesian3()),
           new Cesium.Cartesian3()
         );
-        const up = Cesium.Cartesian3.normalize(Cesium.Cartesian3.clone(pos), new Cesium.Cartesian3());
+        const up = Cesium.Cartesian3.normalize(Cesium.Cartesian3.clone(p0), new Cesium.Cartesian3());
         const right = Cesium.Cartesian3.normalize(
           Cesium.Cartesian3.cross(dir, up, new Cesium.Cartesian3()),
           new Cesium.Cartesian3()
@@ -180,9 +181,9 @@ statusEl.textContent = 'Loading globe...';
           Cesium.Cartesian3.multiplyByScalar(up, 4000, new Cesium.Cartesian3()),
           new Cesium.Cartesian3()
         );
-        viewer.camera.lookAt(pos, offset);
+        viewer.camera.lookAt(p0, offset);
       }
-    });
+    }
 
     // Zoom out thora
     viewer.camera.flyTo({
@@ -241,7 +242,7 @@ statusEl.textContent = 'Loading globe...';
   });
 
   // Permanent plane at Karachi airport
-  viewer.entities.add({
+  const permPlane = viewer.entities.add({
     position: Cesium.Cartesian3.fromDegrees(67.1608, 24.9065, 300),
     model: { uri: './plane.glb', minimumPixelSize: 64, scale: 40 },
     orientation: new Cesium.CallbackProperty(function() {
@@ -254,7 +255,8 @@ statusEl.textContent = 'Loading globe...';
     }, false)
   });
 
-  // Karachi airport - uper se dekho
+  // Track plane for scroll-zoom
+  viewer.trackedEntity = permPlane;
   viewer.camera.flyTo({
     destination: Cesium.Cartesian3.fromDegrees(67.1608, 24.9065, 4000),
     orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-55), roll: 0 },

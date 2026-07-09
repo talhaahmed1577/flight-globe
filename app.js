@@ -158,32 +158,7 @@ statusEl.textContent = 'Loading globe...';
         return Cesium.Quaternion.multiply(q, flipModel, new Cesium.Quaternion());
       }, false)
     });
-    viewer.trackedEntity = planeEntity;
-    // Set initial camera offset: 800m left, 4000m above
-    const t0 = viewer.clock.currentTime;
-    const p0 = pp.getValue(t0);
-    if (p0) {
-      const t1 = Cesium.JulianDate.addSeconds(t0, 0.1, new Cesium.JulianDate());
-      const p1 = pp.getValue(t1);
-      if (p1) {
-        const dir = Cesium.Cartesian3.normalize(
-          Cesium.Cartesian3.subtract(p1, p0, new Cesium.Cartesian3()),
-          new Cesium.Cartesian3()
-        );
-        const up = Cesium.Cartesian3.normalize(Cesium.Cartesian3.clone(p0), new Cesium.Cartesian3());
-        const right = Cesium.Cartesian3.normalize(
-          Cesium.Cartesian3.cross(dir, up, new Cesium.Cartesian3()),
-          new Cesium.Cartesian3()
-        );
-        const left = Cesium.Cartesian3.negate(right, new Cesium.Cartesian3());
-        const offset = Cesium.Cartesian3.add(
-          Cesium.Cartesian3.multiplyByScalar(left, 800, new Cesium.Cartesian3()),
-          Cesium.Cartesian3.multiplyByScalar(up, 4000, new Cesium.Cartesian3()),
-          new Cesium.Cartesian3()
-        );
-        viewer.camera.lookAt(p0, offset);
-      }
-    }
+    // Zoom out thora
 
     // Zoom out thora
     viewer.camera.flyTo({
@@ -193,6 +168,9 @@ statusEl.textContent = 'Loading globe...';
     });
 
     await new Promise(r => setTimeout(r, 3000));
+
+    // Ab plane ko track karo — scroll zoom plane pe focus rahega
+    viewer.trackedEntity = planeEntity;
 
     // Flight
     await new Promise(resolve => {
@@ -255,13 +233,14 @@ statusEl.textContent = 'Loading globe...';
     }, false)
   });
 
-  // Track plane for scroll-zoom
-  viewer.trackedEntity = permPlane;
   viewer.camera.flyTo({
     destination: Cesium.Cartesian3.fromDegrees(67.1608, 24.9065, 4000),
     orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-55), roll: 0 },
     duration: 0
   });
+
+  // Plane track karo taake scroll zoom plane pe focus rahe
+  viewer.trackedEntity = permPlane;
 
   // Let map load before showing Ready
   setTimeout(() => {

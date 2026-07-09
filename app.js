@@ -155,15 +155,6 @@ statusEl.textContent = 'Loading globe...';
 
     // Camera follow - plane centered, scroll zoom works
     let followActive = true;
-    viewer.entities.add({
-      position: pp,
-      model: { uri: './plane.glb', minimumPixelSize: 64, scale: 40 },
-      orientation: new Cesium.CallbackProperty(function(time) {
-        const q = velOrientation.getValue(time);
-        if (!q) return Cesium.Quaternion.IDENTITY;
-        return Cesium.Quaternion.multiply(q, flipModel, new Cesium.Quaternion());
-      }, false)
-    });
 
     viewer.camera.flyTo({
       destination: Cesium.Cartesian3.fromDegrees(originCity.lon, originCity.lat, 2000000),
@@ -172,6 +163,17 @@ statusEl.textContent = 'Loading globe...';
     });
 
     await new Promise(r => setTimeout(r, 3000));
+
+    // Track plane during flight
+    viewer.trackedEntity = viewer.entities.add({
+      position: pp,
+      model: { uri: './plane.glb', minimumPixelSize: 64, scale: 40 },
+      orientation: new Cesium.CallbackProperty(function(time) {
+        const q = velOrientation.getValue(time);
+        if (!q) return Cesium.Quaternion.IDENTITY;
+        return Cesium.Quaternion.multiply(q, flipModel, new Cesium.Quaternion());
+      }, false)
+    });
 
     // Flight
     await new Promise(resolve => {
@@ -184,6 +186,7 @@ statusEl.textContent = 'Loading globe...';
     });
 
     followActive = false;
+    viewer.trackedEntity = undefined;
     viewer.clock.shouldAnimate = false;
 
     statusEl.textContent = `Arrived! Loading buildings...`;

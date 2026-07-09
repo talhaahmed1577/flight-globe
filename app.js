@@ -153,9 +153,9 @@ statusEl.textContent = 'Loading globe...';
     const velOrientation = new Cesium.VelocityOrientationProperty(pp);
     const flipModel = Cesium.Quaternion.fromAxisAngle(Cesium.Cartesian3.UNIT_Z, Cesium.Math.toRadians(180));
 
-    // Camera follow - plane pe focus, scroll zoom allowed
+    // Camera follow - plane centered, scroll zoom works
     let followActive = true;
-    const planeEntity = viewer.entities.add({
+    viewer.entities.add({
       position: pp,
       model: { uri: './plane.glb', minimumPixelSize: 64, scale: 40 },
       orientation: new Cesium.CallbackProperty(function(time) {
@@ -172,47 +172,6 @@ statusEl.textContent = 'Loading globe...';
     });
 
     await new Promise(r => setTimeout(r, 3000));
-
-    // Camera follow — back se view, scroll zoom allowed
-    let camDist = 4000;
-    const scrollHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
-    scrollHandler.setInputAction(function(w) {
-      camDist = Math.max(500, Math.min(camDist - w.delta * 20, 20000));
-    }, Cesium.ScreenSpaceEventType.WHEEL);
-    let lastCamPos = null;
-    viewer.scene.postUpdate.addEventListener(function cameraFollow() {
-      try {
-        if (!followActive) { viewer.scene.postUpdate.removeEventListener(cameraFollow); return; }
-        const t = viewer.clock.currentTime;
-        const pos = pp.getValue(t);
-        if (!pos || isNaN(pos.x)) return;
-        const nextT = Cesium.JulianDate.addSeconds(t, 0.1, new Cesium.JulianDate());
-        const nextPos = pp.getValue(nextT);
-        if (!nextPos || isNaN(nextPos.x)) return;
-        const dir = Cesium.Cartesian3.subtract(nextPos, pos, new Cesium.Cartesian3());
-        const mag = Cesium.Cartesian3.magnitude(dir);
-        if (mag < 1 || isNaN(mag)) return;
-        Cesium.Cartesian3.normalize(dir, dir);
-        const up = Cesium.Cartesian3.clone(pos);
-        Cesium.Cartesian3.normalize(up, up);
-        const right = Cesium.Cartesian3.cross(dir, up, new Cesium.Cartesian3());
-        const rmag = Cesium.Cartesian3.magnitude(right);
-        if (rmag < 0.001 || isNaN(rmag)) return;
-        Cesium.Cartesian3.normalize(right, right);
-        const left = Cesium.Cartesian3.negate(right, new Cesium.Cartesian3());
-        const camPos = Cesium.Cartesian3.add(
-          Cesium.Cartesian3.add(pos,
-            Cesium.Cartesian3.multiplyByScalar(left, camDist * 0.2, new Cesium.Cartesian3()),
-            new Cesium.Cartesian3()),
-          Cesium.Cartesian3.multiplyByScalar(up, camDist * 0.8, new Cesium.Cartesian3()),
-          new Cesium.Cartesian3()
-        );
-        if (isNaN(camPos.x)) return;
-        viewer.camera.position = camPos;
-        viewer.camera.lookAt(pos);
-        lastCamPos = Cesium.Cartesian3.clone(camPos);
-      } catch (e) { console.warn('Camera error:', e); }
-    });
 
     // Flight
     await new Promise(resolve => {

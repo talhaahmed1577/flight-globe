@@ -164,8 +164,13 @@ statusEl.textContent = 'Loading globe...';
 
     await new Promise(r => setTimeout(r, 3000));
 
-    // Track plane during flight
-    viewer.trackedEntity = viewer.entities.add({
+    // Camera follow - postUpdate, plane centered
+    let camDist = 4000;
+    const scrollHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+    scrollHandler.setInputAction(function(w) {
+      camDist = Math.max(1000, Math.min(camDist - w.delta * 30, 30000));
+    }, Cesium.ScreenSpaceEventType.WHEEL);
+    viewer.entities.add({
       position: pp,
       model: { uri: './plane.glb', minimumPixelSize: 64, scale: 40 },
       orientation: new Cesium.CallbackProperty(function(time) {
@@ -173,6 +178,16 @@ statusEl.textContent = 'Loading globe...';
         if (!q) return Cesium.Quaternion.IDENTITY;
         return Cesium.Quaternion.multiply(q, flipModel, new Cesium.Quaternion());
       }, false)
+    });
+    viewer.scene.postUpdate.addEventListener(function cf() {
+      if (!followActive) { viewer.scene.postUpdate.removeEventListener(cf); scrollHandler.destroy(); return; }
+      try {
+        const t = viewer.clock.currentTime;
+        const pos = pp.getValue(t);
+        if (!pos || isNaN(pos.x)) return;
+        const off = new Cesium.Cartesian3(-camDist * 0.3, -camDist * 0.1, camDist * 0.6);
+        viewer.camera.lookAt(pos, off);
+      } catch (e) { console.warn(e); }
     });
 
     // Flight

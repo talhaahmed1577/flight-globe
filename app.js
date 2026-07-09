@@ -112,14 +112,7 @@ statusEl.textContent = 'Loading globe...';
     const H1 = 100000, H2 = 300, N = 150, D = 5;
     const positions = computePath(originCity.lat, originCity.lon, destCity.lat, destCity.lon, H1, H2, N);
 
-    // Path line
-    viewer.entities.add({
-      polyline: {
-        positions, width: 3,
-        material: new Cesium.PolylineGlowMaterialProperty({ glowPower: 0.5, color: Cesium.Color.YELLOW }),
-        arcType: Cesium.ArcType.NONE
-      }
-    });
+
 
     // Origin & Dest markers
     viewer.entities.add({

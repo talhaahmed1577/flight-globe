@@ -73,7 +73,9 @@ statusEl.textContent = 'Loading globe...';
     animation: false, timeline: false, infoBox: false, selectionIndicator: false,
     fullscreenButton: false, baseLayerPicker: false, homeButton: false,
     navigationHelpButton: false, sceneModePicker: false,
-    contextOptions: { requestWebgl1: true }
+    contextOptions: { requestWebgl1: true },
+    orderIndependentTranslucency: false,
+    scene3DOnly: true
   });
   viewer.scene.renderError.addEventListener(function(s, e) {
     console.warn('Render error, attempting recovery:', e);

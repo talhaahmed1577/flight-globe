@@ -158,9 +158,7 @@ statusEl.textContent = 'Loading globe...';
         return Cesium.Quaternion.multiply(q, flipModel, new Cesium.Quaternion());
       }, false)
     });
-    // Zoom out thora
 
-    // Zoom out thora
     viewer.camera.flyTo({
       destination: Cesium.Cartesian3.fromDegrees(originCity.lon, originCity.lat, 2000000),
       orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-45), roll: 0 },
@@ -169,8 +167,37 @@ statusEl.textContent = 'Loading globe...';
 
     await new Promise(r => setTimeout(r, 3000));
 
-    // Ab plane ko track karo — scroll zoom plane pe focus rahega
-    viewer.trackedEntity = planeEntity;
+    // Camera follow — back se view, scroll zoom allowed
+    let camDist = 4000;
+    const scrollHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+    scrollHandler.setInputAction(function(w) {
+      camDist = Math.max(500, Math.min(camDist - w.delta * 20, 20000));
+    }, Cesium.ScreenSpaceEventType.WHEEL);
+    viewer.scene.postUpdate.addEventListener(function cameraFollow() {
+      if (!followActive) { viewer.scene.postUpdate.removeEventListener(cameraFollow); return; }
+      if (!pp.getValue(viewer.clock.currentTime)) return;
+      const t = viewer.clock.currentTime;
+      const pos = pp.getValue(t);
+      const nextT = Cesium.JulianDate.addSeconds(t, 0.1, new Cesium.JulianDate());
+      const nextPos = pp.getValue(nextT);
+      if (!pos || !nextPos) return;
+      const dir = Cesium.Cartesian3.normalize(
+        Cesium.Cartesian3.subtract(nextPos, pos, new Cesium.Cartesian3()),
+        new Cesium.Cartesian3()
+      );
+      const up = Cesium.Cartesian3.normalize(Cesium.Cartesian3.clone(pos), new Cesium.Cartesian3());
+      const right = Cesium.Cartesian3.normalize(
+        Cesium.Cartesian3.cross(dir, up, new Cesium.Cartesian3()),
+        new Cesium.Cartesian3()
+      );
+      const left = Cesium.Cartesian3.negate(right, new Cesium.Cartesian3());
+      const offset = Cesium.Cartesian3.add(
+        Cesium.Cartesian3.multiplyByScalar(left, camDist * 0.2, new Cesium.Cartesian3()),
+        Cesium.Cartesian3.multiplyByScalar(up, camDist * 0.8, new Cesium.Cartesian3()),
+        new Cesium.Cartesian3()
+      );
+      viewer.camera.lookAt(pos, offset);
+    });
 
     // Flight
     await new Promise(resolve => {
@@ -183,7 +210,6 @@ statusEl.textContent = 'Loading globe...';
     });
 
     followActive = false;
-    viewer.trackedEntity = undefined;
     viewer.clock.shouldAnimate = false;
 
     statusEl.textContent = `Arrived! Loading buildings...`;
@@ -238,9 +264,6 @@ statusEl.textContent = 'Loading globe...';
     orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-55), roll: 0 },
     duration: 0
   });
-
-  // Plane track karo taake scroll zoom plane pe focus rahe
-  viewer.trackedEntity = permPlane;
 
   // Let map load before showing Ready
   setTimeout(() => {

@@ -182,8 +182,8 @@ statusEl.textContent = 'Loading globe...';
         );
         const left = Cesium.Cartesian3.negate(right, new Cesium.Cartesian3());
         const offset = Cesium.Cartesian3.add(
-          Cesium.Cartesian3.multiplyByScalar(left, 800, new Cesium.Cartesian3()),
-          Cesium.Cartesian3.multiplyByScalar(up, 150, new Cesium.Cartesian3()),
+          Cesium.Cartesian3.multiplyByScalar(left, 600, new Cesium.Cartesian3()),
+          Cesium.Cartesian3.multiplyByScalar(up, 500, new Cesium.Cartesian3()),
           new Cesium.Cartesian3()
         );
         viewer.camera.lookAt(pos, offset);
@@ -216,8 +216,8 @@ statusEl.textContent = 'Loading globe...';
     statusEl.textContent = `Arrived! Loading buildings...`;
 
     viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(destCity.lon, destCity.lat, 800),
-      orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-10), roll: 0 },
+      destination: Cesium.Cartesian3.fromDegrees(destCity.lon, destCity.lat, 500),
+      orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-35), roll: 0 },
       duration: 2
     });
 
@@ -260,10 +260,10 @@ statusEl.textContent = 'Loading globe...';
     }, false)
   });
 
-  // Karachi airport zoomed in
+  // Karachi airport - uper se dekho
   viewer.camera.flyTo({
-    destination: Cesium.Cartesian3.fromDegrees(67.1608, 24.9065, 1000),
-    orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-10), roll: 0 },
+    destination: Cesium.Cartesian3.fromDegrees(67.1608, 24.9065, 800),
+    orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-30), roll: 0 },
     duration: 0
   });
 

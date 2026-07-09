@@ -87,14 +87,15 @@ statusEl.textContent = 'Loading globe...';
     } catch (e) { return false; }
   }
 
-  function computePath(slat, slon, elat, elon, h, n) {
+  function computePath(slat, slon, elat, elon, h1, h2, n) {
     const s = Cesium.Cartographic.fromDegrees(slon, slat);
     const e = Cesium.Cartographic.fromDegrees(elon, elat);
     const g = new Cesium.EllipsoidGeodesic(s, e);
     const p = [];
     for (let i = 0; i <= n; i++) {
-      const c = g.interpolateUsingFraction(i / n);
-      c.height = h;
+      const frac = i / n;
+      const c = g.interpolateUsingFraction(frac);
+      c.height = h1 + (h2 - h1) * frac;
       p.push(Cesium.Cartographic.toCartesian(c));
     }
     return p;
@@ -108,8 +109,8 @@ statusEl.textContent = 'Loading globe...';
 
     statusEl.textContent = `${originCity.name} -> ${destCity.name}`;
 
-    const H = 100000, N = 150, D = 5;
-    const positions = computePath(originCity.lat, originCity.lon, destCity.lat, destCity.lon, H, N);
+    const H1 = 100000, H2 = 300, N = 150, D = 5;
+    const positions = computePath(originCity.lat, originCity.lon, destCity.lat, destCity.lon, H1, H2, N);
 
     // Path line
     viewer.entities.add({

@@ -109,7 +109,7 @@ statusEl.textContent = 'Loading globe...';
 
     statusEl.textContent = `${originCity.name} -> ${destCity.name}`;
 
-    const H1 = 100000, H2 = 300, N = 150, D = 5;
+    const H1 = 100000, H2 = 300, N = 200, D = 12;
     const positions = computePath(originCity.lat, originCity.lon, destCity.lat, destCity.lon, H1, H2, N);
 
 
@@ -191,7 +191,7 @@ statusEl.textContent = 'Loading globe...';
       duration: 1.5
     });
 
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise(r => setTimeout(r, 3000));
 
     // Flight
     await new Promise(resolve => {
@@ -261,5 +261,8 @@ statusEl.textContent = 'Loading globe...';
     duration: 0
   });
 
-  statusEl.textContent = 'Ready! Select cities and click Fly Now';
+  // Let map load before showing Ready
+  setTimeout(() => {
+    statusEl.textContent = 'Ready! Select cities and click Fly Now';
+  }, 2000);
 })();

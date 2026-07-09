@@ -72,7 +72,12 @@ statusEl.textContent = 'Loading globe...';
   const viewer = new Cesium.Viewer('cesiumContainer', {
     animation: false, timeline: false, infoBox: false, selectionIndicator: false,
     fullscreenButton: false, baseLayerPicker: false, homeButton: false,
-    navigationHelpButton: false, sceneModePicker: false
+    navigationHelpButton: false, sceneModePicker: false,
+    contextOptions: { requestWebgl1: true }
+  });
+  viewer.scene.renderError.addEventListener(function(s, e) {
+    console.warn('Render error, attempting recovery:', e);
+    setTimeout(() => { try { viewer.scene.render(); } catch (ex) {} }, 100);
   });
 
   let flightActive = false;
@@ -174,29 +179,31 @@ statusEl.textContent = 'Loading globe...';
       camDist = Math.max(500, Math.min(camDist - w.delta * 20, 20000));
     }, Cesium.ScreenSpaceEventType.WHEEL);
     viewer.scene.postUpdate.addEventListener(function cameraFollow() {
-      if (!followActive) { viewer.scene.postUpdate.removeEventListener(cameraFollow); return; }
-      if (!pp.getValue(viewer.clock.currentTime)) return;
-      const t = viewer.clock.currentTime;
-      const pos = pp.getValue(t);
-      const nextT = Cesium.JulianDate.addSeconds(t, 0.1, new Cesium.JulianDate());
-      const nextPos = pp.getValue(nextT);
-      if (!pos || !nextPos) return;
-      const dir = Cesium.Cartesian3.normalize(
-        Cesium.Cartesian3.subtract(nextPos, pos, new Cesium.Cartesian3()),
-        new Cesium.Cartesian3()
-      );
-      const up = Cesium.Cartesian3.normalize(Cesium.Cartesian3.clone(pos), new Cesium.Cartesian3());
-      const right = Cesium.Cartesian3.normalize(
-        Cesium.Cartesian3.cross(dir, up, new Cesium.Cartesian3()),
-        new Cesium.Cartesian3()
-      );
-      const left = Cesium.Cartesian3.negate(right, new Cesium.Cartesian3());
-      const offset = Cesium.Cartesian3.add(
-        Cesium.Cartesian3.multiplyByScalar(left, camDist * 0.2, new Cesium.Cartesian3()),
-        Cesium.Cartesian3.multiplyByScalar(up, camDist * 0.8, new Cesium.Cartesian3()),
-        new Cesium.Cartesian3()
-      );
-      viewer.camera.lookAt(pos, offset);
+      try {
+        if (!followActive) { viewer.scene.postUpdate.removeEventListener(cameraFollow); return; }
+        const t = viewer.clock.currentTime;
+        const pos = pp.getValue(t);
+        const nextT = Cesium.JulianDate.addSeconds(t, 0.1, new Cesium.JulianDate());
+        const nextPos = pp.getValue(nextT);
+        if (!pos || !nextPos) return;
+        const dir = Cesium.Cartesian3.subtract(nextPos, pos, new Cesium.Cartesian3());
+        if (Cesium.Cartesian3.magnitude(dir) < 1) return;
+        Cesium.Cartesian3.normalize(dir, dir);
+        const up = Cesium.Cartesian3.clone(pos);
+        Cesium.Cartesian3.normalize(up, up);
+        const right = Cesium.Cartesian3.cross(dir, up, new Cesium.Cartesian3());
+        if (Cesium.Cartesian3.magnitude(right) < 0.001) return;
+        Cesium.Cartesian3.normalize(right, right);
+        const left = Cesium.Cartesian3.negate(right, new Cesium.Cartesian3());
+        const offset = Cesium.Cartesian3.add(
+          Cesium.Cartesian3.multiplyByScalar(left, camDist * 0.2, new Cesium.Cartesian3()),
+          Cesium.Cartesian3.multiplyByScalar(up, camDist * 0.8, new Cesium.Cartesian3()),
+          new Cesium.Cartesian3()
+        );
+        viewer.camera.lookAt(pos, offset);
+      } catch (e) {
+        console.warn('Camera follow error:', e);
+      }
     });
 
     // Flight

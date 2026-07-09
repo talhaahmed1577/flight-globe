@@ -164,12 +164,7 @@ statusEl.textContent = 'Loading globe...';
 
     await new Promise(r => setTimeout(r, 3000));
 
-    // Camera follow - postUpdate, plane centered
-    let camDist = 4000;
-    const scrollHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
-    scrollHandler.setInputAction(function(w) {
-      camDist = Math.max(1000, Math.min(camDist - w.delta * 30, 30000));
-    }, Cesium.ScreenSpaceEventType.WHEEL);
+    // Camera follow - postUpdate, 3rd person view
     viewer.entities.add({
       position: pp,
       model: { uri: './plane.glb', minimumPixelSize: 64, scale: 40 },
@@ -179,14 +174,14 @@ statusEl.textContent = 'Loading globe...';
         return Cesium.Quaternion.multiply(q, flipModel, new Cesium.Quaternion());
       }, false)
     });
+    const camDist = 10000;
     viewer.scene.postUpdate.addEventListener(function cf() {
-      if (!followActive) { viewer.scene.postUpdate.removeEventListener(cf); scrollHandler.destroy(); return; }
+      if (!followActive) { viewer.scene.postUpdate.removeEventListener(cf); return; }
       try {
         const t = viewer.clock.currentTime;
         const pos = pp.getValue(t);
         if (!pos || isNaN(pos.x)) return;
-        const off = new Cesium.Cartesian3(-camDist * 0.3, -camDist * 0.1, camDist * 0.6);
-        viewer.camera.lookAt(pos, off);
+        viewer.camera.lookAt(pos, new Cesium.Cartesian3(-camDist * 0.3, -camDist * 0.1, camDist * 0.6));
       } catch (e) { console.warn(e); }
     });
 
@@ -207,8 +202,8 @@ statusEl.textContent = 'Loading globe...';
     statusEl.textContent = `Arrived! Loading buildings...`;
 
     viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(destCity.lon, destCity.lat, 4000),
-      orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-55), roll: 0 },
+      destination: Cesium.Cartesian3.fromDegrees(destCity.lon, destCity.lat, 8000),
+      orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-30), roll: 0 },
       duration: 2
     });
 
@@ -252,8 +247,8 @@ statusEl.textContent = 'Loading globe...';
   });
 
   viewer.camera.flyTo({
-    destination: Cesium.Cartesian3.fromDegrees(67.1608, 24.9065, 4000),
-    orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-55), roll: 0 },
+    destination: Cesium.Cartesian3.fromDegrees(67.1608, 24.9065, 10000),
+    orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-30), roll: 0 },
     duration: 0
   });
 

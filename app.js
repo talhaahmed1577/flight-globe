@@ -100,6 +100,7 @@ statusEl.textContent = 'Loading globe...';
     flyBtn.disabled = true;
     flyBtn.textContent = 'Flying...';
     viewer.entities.removeAll();
+    viewer.trackedEntity = undefined;
 
     statusEl.textContent = `${originCity.name} -> ${destCity.name}`;
 
@@ -115,32 +116,121 @@ statusEl.textContent = 'Loading globe...';
       label: { text: destCity.name, font: '16px Segoe UI', fillColor: Cesium.Color.WHITE, outlineColor: Cesium.Color.BLACK, outlineWidth: 2, style: Cesium.LabelStyle.FILL_AND_OUTLINE, verticalOrigin: Cesium.VerticalOrigin.TOP, pixelOffset: new Cesium.Cartesian2(0, -35) }
     });
 
-    // Zoom out to origin city
-    viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(originCity.lon, originCity.lat, 2000000),
-      orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-45), roll: 0 },
-      duration: 1.5
+    // --- TAKEOFF ---
+    statusEl.textContent = `Taking off from ${originCity.name}...`;
+
+    // Create flight path: takeoff from origin (300m → 5000m in 3 sec)
+    const takeoffPositions = [];
+    for (let i = 0; i <= 60; i++) {
+      const f = i / 60;
+      const h = 300 + f * 4700;
+      takeoffPositions.push(Cesium.Cartesian3.fromDegrees(originCity.lon, originCity.lat, h));
+    }
+
+    const pp = new Cesium.SampledPositionProperty();
+    const st = Cesium.JulianDate.now();
+    for (let i = 0; i < takeoffPositions.length; i++) {
+      const t = Cesium.JulianDate.addSeconds(st, (i / takeoffPositions.length) * 3, new Cesium.JulianDate());
+      pp.addSample(t, takeoffPositions[i]);
+    }
+
+    viewer.clock.startTime = st;
+    viewer.clock.stopTime = Cesium.JulianDate.addSeconds(st, 3, new Cesium.JulianDate());
+    viewer.clock.currentTime = st;
+    viewer.clock.clockRange = Cesium.ClockRange.CLAMPED;
+    viewer.clock.multiplier = 1;
+    viewer.clock.shouldAnimate = true;
+
+    const velOrientation = new Cesium.VelocityOrientationProperty(pp);
+    const flipModel = Cesium.Quaternion.fromAxisAngle(Cesium.Cartesian3.UNIT_Z, Cesium.Math.toRadians(180));
+    const planeEntity = viewer.entities.add({
+      position: pp,
+      model: { uri: './plane.glb', minimumPixelSize: 64, scale: 40 },
+      orientation: new Cesium.CallbackProperty(function(tm) {
+        const q = velOrientation.getValue(tm);
+        if (!q) return Cesium.Quaternion.IDENTITY;
+        return Cesium.Quaternion.multiply(q, flipModel, new Cesium.Quaternion());
+      }, false)
     });
 
-    await new Promise(r => setTimeout(r, 2000));
+    // Camera follow during takeoff
+    viewer.trackedEntity = planeEntity;
+    await new Promise(resolve => {
+      const tick = viewer.clock.onTick.addEventListener(function() {
+        if (Cesium.JulianDate.greaterThanOrEquals(viewer.clock.currentTime, viewer.clock.stopTime)) {
+          tick();
+          resolve();
+        }
+      });
+    });
+    viewer.clock.shouldAnimate = false;
+    viewer.trackedEntity = undefined;
 
-    // Play video overlay
+    // --- VIDEO ---
     videoOverlay.classList.add('show');
     flightVideo.currentTime = 0;
     await flightVideo.play();
-
-    // Wait for video to finish
-    await new Promise(resolve => {
-      flightVideo.onended = resolve;
-    });
-
+    await new Promise(resolve => { flightVideo.onended = resolve; });
     videoOverlay.classList.remove('show');
     flightVideo.pause();
 
-    // Landing at destination
-    statusEl.textContent = `Arrived at ${destCity.name}! Loading buildings...`;
+    // --- LANDING ---
+    statusEl.textContent = `Landing at ${destCity.name}...`;
     viewer.camera.flyTo({
       destination: Cesium.Cartesian3.fromDegrees(destCity.lon, destCity.lat, 8000),
+      orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-30), roll: 0 },
+      duration: 1
+    });
+    await new Promise(r => setTimeout(r, 1500));
+
+    // Descend: 5000m → 300m
+    const landPositions = [];
+    for (let i = 0; i <= 60; i++) {
+      const f = i / 60;
+      const h = 5000 - f * 4700;
+      landPositions.push(Cesium.Cartesian3.fromDegrees(destCity.lon, destCity.lat, h));
+    }
+
+    const pp2 = new Cesium.SampledPositionProperty();
+    const st2 = Cesium.JulianDate.now();
+    for (let i = 0; i < landPositions.length; i++) {
+      const t = Cesium.JulianDate.addSeconds(st2, (i / landPositions.length) * 3, new Cesium.JulianDate());
+      pp2.addSample(t, landPositions[i]);
+    }
+
+    viewer.clock.startTime = st2;
+    viewer.clock.stopTime = Cesium.JulianDate.addSeconds(st2, 3, new Cesium.JulianDate());
+    viewer.clock.currentTime = st2;
+    viewer.clock.multiplier = 1;
+    viewer.clock.shouldAnimate = true;
+
+    const velOrientation2 = new Cesium.VelocityOrientationProperty(pp2);
+    const landEntity = viewer.entities.add({
+      position: pp2,
+      model: { uri: './plane.glb', minimumPixelSize: 64, scale: 40 },
+      orientation: new Cesium.CallbackProperty(function(tm) {
+        const q = velOrientation2.getValue(tm);
+        if (!q) return Cesium.Quaternion.IDENTITY;
+        return Cesium.Quaternion.multiply(q, flipModel, new Cesium.Quaternion());
+      }, false)
+    });
+
+    viewer.trackedEntity = landEntity;
+    await new Promise(resolve => {
+      const tick = viewer.clock.onTick.addEventListener(function() {
+        if (Cesium.JulianDate.greaterThanOrEquals(viewer.clock.currentTime, viewer.clock.stopTime)) {
+          tick();
+          resolve();
+        }
+      });
+    });
+    viewer.clock.shouldAnimate = false;
+    viewer.trackedEntity = undefined;
+
+    // Arrived
+    statusEl.textContent = `Arrived at ${destCity.name}! Loading buildings...`;
+    viewer.camera.flyTo({
+      destination: Cesium.Cartesian3.fromDegrees(destCity.lon, destCity.lat, 4000),
       orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-30), roll: 0 },
       duration: 2
     });

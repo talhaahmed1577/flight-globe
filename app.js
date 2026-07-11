@@ -119,12 +119,15 @@ statusEl.textContent = 'Loading globe...';
     // --- TAKEOFF ---
     statusEl.textContent = `Taking off from ${originCity.name}...`;
 
-    // Create flight path: takeoff from origin (300m → 5000m in 3 sec)
+    // Takeoff path: origin se destination ki taraf 15% tak, height 300→5000m
     const takeoffPositions = [];
-    for (let i = 0; i <= 60; i++) {
-      const f = i / 60;
+    const takeoffSteps = 60;
+    for (let i = 0; i <= takeoffSteps; i++) {
+      const f = i / takeoffSteps;
+      const lon = originCity.lon + (destCity.lon - originCity.lon) * f * 0.15;
+      const lat = originCity.lat + (destCity.lat - originCity.lat) * f * 0.15;
       const h = 300 + f * 4700;
-      takeoffPositions.push(Cesium.Cartesian3.fromDegrees(originCity.lon, originCity.lat, h));
+      takeoffPositions.push(Cesium.Cartesian3.fromDegrees(lon, lat, h));
     }
 
     const pp = new Cesium.SampledPositionProperty();
@@ -183,12 +186,15 @@ statusEl.textContent = 'Loading globe...';
     });
     await new Promise(r => setTimeout(r, 1500));
 
-    // Descend: 5000m → 300m
+    // Descend: destination ki taraf se aate howe land
     const landPositions = [];
-    for (let i = 0; i <= 60; i++) {
-      const f = i / 60;
+    const landSteps = 60;
+    for (let i = 0; i <= landSteps; i++) {
+      const f = i / landSteps;
+      const lon = destCity.lon + (destCity.lon - originCity.lon) * (f - 1) * 0.15;
+      const lat = destCity.lat + (destCity.lat - originCity.lat) * (f - 1) * 0.15;
       const h = 5000 - f * 4700;
-      landPositions.push(Cesium.Cartesian3.fromDegrees(destCity.lon, destCity.lat, h));
+      landPositions.push(Cesium.Cartesian3.fromDegrees(lon, lat, h));
     }
 
     const pp2 = new Cesium.SampledPositionProperty();
